@@ -1,191 +1,40 @@
-(function () {
-  var root = document.getElementById('sspr');
-  if (!root) return;
-
-  /* ===== 設定 ===== */
-  var SCRIPT = document.currentScript && document.currentScript.src;
-  var BASE = SCRIPT ? SCRIPT.replace(/[^\/]*$/, '') : 'https://ashimoto0729.github.io/sumasuma-map/';
-  var CSV_URL = root.getAttribute('data-csv') || (BASE + 'prices.csv');
-  var LINE_URL = 'https://lin.ee/sUhSQys';
-  var RESERVE_URL = 'https://www.sumasuma.com/support/contact';
-  var ONSITE_URL = 'https://www.sumasuma.com/service/onsite-service';
-  var CATS = ['iPhone', 'iPad', 'Apple Watch', 'Android', 'ゲーム機'];
-
-  if (!document.getElementById('ssmap-font')) {
-    var lk = document.createElement('link');
-    lk.id = 'ssmap-font'; lk.rel = 'stylesheet';
-    lk.href = 'https://fonts.googleapis.com/css2?family=Barlow:wght@700;800&display=swap';
-    document.head.appendChild(lk);
-  }
-
-  var G = "'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic','Meiryo',sans-serif";
-  var D = "'Barlow','DIN Alternate','Bahnschrift',sans-serif";
-  var css = [
-    '#sspr{--o:#EE8A2B;--o2:#FCD9B3;--od:#D87B00;--ink:#333;font-family:' + G + ';color:var(--ink);width:100%;box-sizing:border-box;display:flex;gap:0;align-items:stretch;-webkit-tap-highlight-color:transparent}',
-    '#sspr *{box-sizing:border-box}',
-    '#sspr .pick{flex:0 0 55%;width:55%;padding:16px 16px 16px 0;min-width:0}',
-    '#sspr .res{flex:0 0 45%;width:45%;padding:16px 16px 16px 12px;min-width:0}',
-    '#sspr .st{font-size:13px;font-weight:800;color:var(--od);margin:0 0 8px;display:flex;align-items:center;gap:8px}',
-    '#sspr .st b{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--o);color:#fff;font-size:12px;font-family:' + D + '}',
-    '#sspr .blk{margin-bottom:18px}',
-    '#sspr .chips{display:flex;flex-wrap:wrap;gap:8px}',
-    '#sspr .chip{appearance:none;border:2px solid var(--o);background:#fff;color:var(--od);border-radius:100px;padding:8px 14px;font:800 13px/1.2 ' + G + ';cursor:pointer;transition:background .15s,color .15s,transform .15s}',
-    '#sspr .chip:hover{background:#FFF3E3}',
-    '#sspr .chip.on{background:var(--o);color:#fff}',
-    '#sspr .sel{position:relative}',
-    '#sspr select{appearance:none;-webkit-appearance:none;width:100%;border:2px solid var(--o);border-radius:12px;background:#fff;padding:12px 40px 12px 14px;font:700 15px/1.3 ' + G + ';color:var(--ink);cursor:pointer}',
-    '#sspr select:disabled{border-color:#ddd;color:#aaa;cursor:not-allowed}',
-    '#sspr .sel::after{content:"";position:absolute;right:16px;top:50%;width:9px;height:9px;border-right:2.5px solid var(--o);border-bottom:2.5px solid var(--o);transform:translateY(-70%) rotate(45deg);pointer-events:none}',
-    '#sspr .reps{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}',
-    '#sspr .rep{appearance:none;text-align:left;border:2px solid #eee;background:#fff;border-radius:12px;padding:9px 12px;cursor:pointer;font-family:' + G + ';color:var(--ink);transition:border-color .15s,background .15s;display:flex;flex-direction:column;gap:2px;position:relative}',
-    '#sspr .rep:hover{border-color:var(--o2)}',
-    '#sspr .rep.on{border-color:var(--o);background:#FFF6EC}',
-    '#sspr .rep .rn{font-size:13px;font-weight:800;padding-right:20px}',
-    '#sspr .rep .rp{font-size:12px;color:#888;font-weight:700}',
-    '#sspr .rep .ck{position:absolute;right:10px;top:10px;width:16px;height:16px;border-radius:50%;border:2px solid #ddd}',
-    '#sspr .rep.on .ck{border-color:var(--o);background:var(--o)}',
-    '#sspr .rep.on .ck::after{content:"";position:absolute;left:3.5px;top:1px;width:4px;height:7px;border-right:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(45deg)}',
-    '#sspr .empty{font-size:13px;color:#999;padding:10px 0}',
-    '#sspr .card{position:relative;container-type:inline-size;background:#fff;border:2.5px solid var(--o);border-radius:16px;padding:20px 22px;box-shadow:0 6px 18px rgba(238,138,43,.06);display:flex;flex-direction:column;height:100%;min-height:340px}',
-    '#sspr .dev{font-size:clamp(17px,6.5cqw,24px);font-weight:800;margin:0 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-    '#sspr .lb{font-size:11px;color:#888;margin:0 0 10px}',
-    '#sspr .list{flex:1 1 auto;min-height:72px;overflow:auto;border-top:1px dashed #eee;border-bottom:1px dashed #eee;padding:6px 0;margin:0 0 10px}',
-    '#sspr .li{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:4px 0}',
-    '#sspr .li span:last-child{font-family:' + D + ';font-weight:700;font-size:15px;white-space:nowrap}',
-    '#sspr .hint{font-size:13px;color:#999;line-height:1.7;margin:0;padding:6px 0}',
-    '#sspr .tot{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0}',
-    '#sspr .tot .tl{font-size:12px;font-weight:800;color:#666;white-space:nowrap}',
-    '#sspr .tot .tv{font-family:' + D + ';font-weight:800;color:#E53935;font-size:clamp(34px,15cqw,60px);line-height:1;white-space:nowrap;display:inline-block}',
-    '#sspr .tot .tv small{font-family:' + G + ';font-weight:800;font-size:.38em;margin-left:3px}',
-    '#sspr .tot .tv.ask{font-family:' + G + ';font-size:clamp(20px,8cqw,30px);color:var(--o)}',
-    '#sspr .tv.pop{animation:ssprPop .5s cubic-bezier(.2,1.6,.4,1) both}',
-    '@keyframes ssprPop{0%{opacity:0;transform:scale(.5) translateY(8px)}100%{opacity:1;transform:none}}',
-    '#sspr .nt{font-size:11px;color:#777;line-height:1.6;margin:8px 0 12px}',
-    '#sspr .nt a{color:var(--od);font-weight:700}',
-    '#sspr .btns{display:flex;gap:8px}',
-    '#sspr .btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:100px;padding:11px 8px;font:800 13px/1 ' + G + ';color:#fff;text-decoration:none;transition:filter .15s,transform .15s}',
-    '#sspr .btn:hover{filter:brightness(.95);transform:scale(1.03)}',
-    '#sspr .btn.line{background:#06C755}',
-    '#sspr .btn.rsv{background:var(--o)}',
-    '#sspr .err{font-size:13px;color:#c00;padding:12px}',
-    '@media (prefers-reduced-motion:reduce){#sspr .tv.pop{animation:none}}',
-    '@media (max-width:649px){#sspr{flex-direction:column}#sspr .pick,#sspr .res{width:100%;flex:none;padding:8px 4px}#sspr .card{min-height:0;padding:16px 18px}#sspr .reps{grid-template-columns:repeat(2,1fr)}}'
-  ].join('\n');
-
-  root.innerHTML = '<style>' + css + '</style>' +
-    '<div class="pick">' +
-      '<div class="blk"><p class="st"><b>1</b>機種の種類</p><div class="chips" id="sspr-cat"></div></div>' +
-      '<div class="blk"><p class="st"><b>2</b>機種</p><div class="sel"><select id="sspr-model" aria-label="機種" disabled><option>読み込み中…</option></select></div></div>' +
-      '<div class="blk"><p class="st"><b>3</b>修理内容（複数選べます）</p><div class="reps" id="sspr-reps"><p class="empty">機種を選ぶと修理内容が表示されます</p></div></div>' +
-    '</div>' +
-    '<div class="res"><div class="card" aria-live="polite">' +
-      '<p class="dev" id="sspr-dev">修理料金の目安</p><p class="lb">料金はすべて税込です</p>' +
-      '<div class="list" id="sspr-list"><p class="hint">機種と修理内容を選ぶと、料金が自動で表示されます</p></div>' +
-      '<div class="tot"><span class="tl">合計（税込）</span><span class="tv" id="sspr-tot">―</span></div>' +
-      '<p class="nt">別途出張費がかかります（宇治市内は無料）。<a href="' + ONSITE_URL + '" target="_top">出張費はこちら</a></p>' +
-      '<div class="btns"><a class="btn line" href="' + LINE_URL + '" target="_blank" rel="noopener">LINEで相談</a><a class="btn rsv" href="' + RESERVE_URL + '" target="_top">ネット予約</a></div>' +
-    '</div></div>';
-
-  var $ = function (id) { return document.getElementById(id); };
-  var data = {}, order = {}, state = { cat: 'iPhone', model: '', reps: [] };
-
-  function parseCSV(t) {
-    var rows = [], row = [], f = '', q = false;
-    t = t.replace(/^﻿/, '');
-    for (var i = 0; i < t.length; i++) {
-      var c = t[i];
-      if (q) { if (c === '"') { if (t[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
-      else if (c === '"') q = true;
-      else if (c === ',') { row.push(f); f = ''; }
-      else if (c === '\n' || c === '\r') { if (c === '\r' && t[i + 1] === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; }
-      else f += c;
-    }
-    if (f !== '' || row.length) { row.push(f); rows.push(row); }
-    return rows;
-  }
-  function val(s) {
-    s = String(s).trim();
-    var from = /[〜~]$/.test(s);
-    var n = parseInt(s.replace(/[^\d]/g, ''), 10);
-    if (isNaN(n) || n === 0) return { ask: true };
-    return { n: n, from: from };
-  }
-  function yen(n) { return n.toLocaleString('ja-JP'); }
-  function fmt(v) { return v.ask ? 'お問い合わせ' : yen(v.n) + '円' + (v.from ? '〜' : ''); }
-  function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-
-  function drawCats() {
-    var box = $('sspr-cat'); box.innerHTML = '';
-    CATS.forEach(function (c) {
-      if (!order[c]) return;
-      var b = document.createElement('button');
-      b.type = 'button'; b.className = 'chip' + (c === state.cat ? ' on' : ''); b.textContent = c;
-      b.addEventListener('click', function () { state.cat = c; state.model = ''; state.reps = []; drawCats(); drawModels(); drawReps(); drawResult(true); });
-      box.appendChild(b);
-    });
-  }
-  function drawModels() {
-    var s = $('sspr-model'); s.disabled = false;
-    var models = order[state.cat] || [];
-    var html = '<option value="">機種を選んでください</option>';
-    models.slice().reverse().forEach(function (m) { html += '<option value="' + esc(m) + '"' + (m === state.model ? ' selected' : '') + '>' + esc(m) + '</option>'; });
-    s.innerHTML = html;
-    if (models.length === 1) { state.model = models[0]; s.value = models[0]; }
-  }
-  function drawReps() {
-    var box = $('sspr-reps');
-    if (!state.model) { box.innerHTML = '<p class="empty">機種を選ぶと修理内容が表示されます</p>'; return; }
-    var list = data[state.cat][state.model];
-    box.innerHTML = '';
-    list.forEach(function (r) {
-      var b = document.createElement('button');
-      b.type = 'button'; b.className = 'rep' + (state.reps.indexOf(r.name) >= 0 ? ' on' : '');
-      b.setAttribute('aria-pressed', state.reps.indexOf(r.name) >= 0 ? 'true' : 'false');
-      b.innerHTML = '<span class="ck"></span><span class="rn">' + esc(r.name) + '</span><span class="rp">' + esc(fmt(r.v)) + '</span>';
-      b.addEventListener('click', function () {
-        var i = state.reps.indexOf(r.name);
-        if (i >= 0) state.reps.splice(i, 1); else state.reps.push(r.name);
-        drawReps(); drawResult(true);
-      });
-      box.appendChild(b);
-    });
-  }
-  function drawResult(anim) {
-    $('sspr-dev').textContent = state.model || '修理料金の目安';
-    var listEl = $('sspr-list'), tot = $('sspr-tot');
-    if (!state.model || !state.reps.length) {
-      listEl.innerHTML = '<p class="hint">' + (state.model ? '修理内容を選ぶと、料金が自動で表示されます' : '機種と修理内容を選ぶと、料金が自動で表示されます') + '</p>';
-      tot.className = 'tv'; tot.textContent = '―'; return;
-    }
-    var all = data[state.cat][state.model], sum = 0, ask = false, from = false, h = '';
-    all.forEach(function (r) {
-      if (state.reps.indexOf(r.name) < 0) return;
-      h += '<div class="li"><span>' + esc(r.name) + '</span><span>' + esc(fmt(r.v)) + '</span></div>';
-      if (r.v.ask) ask = true; else { sum += r.v.n; if (r.v.from) from = true; }
-    });
-    listEl.innerHTML = h;
-    if (ask) { tot.className = 'tv ask'; tot.textContent = 'お問い合わせ'; }
-    else { tot.className = 'tv'; tot.innerHTML = yen(sum) + '<small>円' + (from ? '〜' : '') + '</small>'; }
-    if (anim) { void tot.offsetWidth; tot.classList.add('pop'); }
-  }
-
-  $('sspr-model').addEventListener('change', function () { state.model = this.value; state.reps = []; drawReps(); drawResult(true); });
-
-  fetch(CSV_URL + (CSV_URL.indexOf('?') < 0 ? '?' : '&') + 'v=' + Date.now())
-    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
-    .then(function (t) {
-      var rows = parseCSV(t), head = rows.shift();
-      rows.forEach(function (r) {
-        if (r.length < 4 || !r[0] || !r[1] || !r[2]) return;
-        var c = r[0].trim(), m = r[1].trim(), n = r[2].trim();
-        if (!data[c]) { data[c] = {}; order[c] = []; }
-        if (!data[c][m]) { data[c][m] = []; order[c].push(m); }
-        data[c][m].push({ name: n, v: val(r[3]) });
-      });
-      CATS.forEach(function (c) { if (data[c] && CATS.indexOf(c) < 0) CATS.push(c); });
-      Object.keys(data).forEach(function (c) { if (CATS.indexOf(c) < 0) CATS.push(c); });
-      if (!order[state.cat]) state.cat = Object.keys(order)[0];
-      drawCats(); drawModels(); drawReps(); drawResult(false);
-    })
-    .catch(function () { root.innerHTML = '<p class="err">料金データを読み込めませんでした。時間をおいて再度お試しください。</p>'; });
+(function(){
+var root0=document.getElementById('sspr');if(!root0)return;
+var SCRIPT=document.currentScript&&document.currentScript.src;
+var BASE=SCRIPT?SCRIPT.replace(/[^\/]*$/,''):'https://ashimoto0729.github.io/sumasuma-map/';
+var CSV_URL=root0.getAttribute('data-csv')||(BASE+'prices.csv');
+var CATS=['iPhone','iPad','Apple Watch','Android','ゲーム機'];
+if(!document.getElementById('sspr-font')){var lk=document.createElement('link');lk.id='sspr-font';lk.rel='stylesheet';lk.href='https://fonts.googleapis.com/css2?family=Barlow:wght@700&family=M+PLUS+1p:wght@900&display=swap';document.head.appendChild(lk);}
+var st=document.createElement('style');st.textContent="#sspr{--o:#F78D01;--od:#D87B00;--ink:#333;--line:#E9E1D6;font-family:'Noto Sans JP','Hiragino Sans','Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;color:var(--ink)}\n#sspr *{box-sizing:border-box}\n#sspr .scr{animation:f .25s ease both}\n@keyframes f{from{opacity:0}to{opacity:1}}\n#sspr .ttl{font-family:'M PLUS 1p','Hiragino Sans',sans-serif;font-weight:900;font-size:26px;letter-spacing:.06em;text-align:center;margin:6px 0 4px}\n#sspr .sub{text-align:center;font-size:12px;color:#8a7b6a;margin:0 0 22px}\n#sspr .menu{display:flex;max-width:900px;margin:0 auto;background:#fff;border-radius:10px;padding:6px 4px}\n#sspr .menu button{appearance:none;flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:none;border:none;border-right:1px dashed var(--line);padding:18px 8px;font-family:inherit;font-size:15px;font-weight:700;color:var(--ink);cursor:pointer;text-align:left}\n#sspr .menu button:last-child{border-right:none}\n#sspr .menu button{flex-direction:column;gap:10px}\n#sspr .menu button svg{width:38px;height:38px;fill:none;stroke:var(--o);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}\n#sspr .menu button b{display:flex;align-items:center;gap:6px;font-weight:700}\n#sspr .menu button span{color:var(--o);font-size:18px;transition:transform .15s}\n#sspr .menu button:hover{color:var(--od)}\n#sspr .menu button:hover span{transform:translateX(3px)}\n#sspr .top{display:flex;align-items:baseline;gap:14px;margin:0 0 14px}\n#sspr .back{appearance:none;border:none;background:none;padding:0;color:var(--od);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}\n#sspr .cat{font-family:'M PLUS 1p','Hiragino Sans',sans-serif;font-weight:900;font-size:20px}\n#sspr .two{display:flex;gap:32px;align-items:flex-start}\n#sspr .pk{flex:0 0 54%;min-width:0}\n#sspr .rs{flex:1;min-width:0}\n#sspr .lb{font-size:12px;font-weight:700;color:#8a7b6a;margin:0 0 6px}\n#sspr select{appearance:none;-webkit-appearance:none;width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 36px 11px 12px;font-family:inherit;font-size:15px;font-weight:700;color:var(--ink);background:#fff url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23333' stroke-width='1.6'/%3E%3C/svg%3E\") no-repeat right 14px center;margin:0 0 18px;cursor:pointer}\n#sspr select:focus{outline:none;border-color:var(--o)}\n#sspr .list{background:#fff;border-radius:10px;padding:2px 16px}\n#sspr .row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed var(--line);cursor:pointer;font-size:14px}\n#sspr .row:last-child{border-bottom:none}\n#sspr .row input{appearance:none;-webkit-appearance:none;width:16px;height:16px;border:1.5px solid #c9bfb2;border-radius:4px;margin:0;flex:none;position:relative;cursor:pointer;background:#fff}\n#sspr .row input:checked{background:var(--o);border-color:var(--o)}\n#sspr .row input:checked::after{content:\"\";position:absolute;left:4.5px;top:1.5px;width:4px;height:8px;border-right:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(45deg)}\n#sspr .row .n{flex:1;font-weight:700}\n#sspr .row .p{font-family:'Barlow','DIN Alternate','Bahnschrift',sans-serif;font-weight:700;font-size:15px;color:#555}\n#sspr .row.on .n{color:var(--od)}\n#sspr .wait{font-size:13px;color:#a99;padding:12px 0;margin:0}\n#sspr .memo{background:#fff;border-radius:10px;padding:18px 20px 16px;height:320px;display:flex;flex-direction:column;border-top:4px solid var(--o)}\n#sspr .mh{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 8px}\n#sspr .mh b{font-family:'M PLUS 1p','Hiragino Sans',sans-serif;font-weight:900;font-size:16px;letter-spacing:.1em}\n#sspr .mh span{font-size:12px;color:#8a7b6a;font-weight:700;max-width:60%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#sspr .items{flex:1 1 0;min-height:0;overflow:auto;border-top:1px dashed var(--line);padding:4px 0}\n#sspr .it{display:flex;align-items:baseline;gap:6px;font-size:13px;padding:5px 0}\n#sspr .it i{flex:1;border-bottom:1px dotted #cfc5b8;transform:translateY(-3px)}\n#sspr .it em{font-style:normal;font-family:'Barlow','DIN Alternate','Bahnschrift',sans-serif;font-weight:700;font-size:14px}\n#sspr .sum{border-top:3px double var(--line);padding:10px 0 2px;display:flex;align-items:baseline;justify-content:space-between}\n#sspr .sum .sl{font-size:12px;font-weight:700}\n#sspr .tv{font-family:'Barlow','DIN Alternate','Bahnschrift',sans-serif;font-weight:700;font-size:40px;line-height:1;color:#E53935;transition:opacity .2s}\n#sspr .tv small{font-family:'Noto Sans JP','Hiragino Sans',sans-serif;font-size:13px;margin-left:2px}\n#sspr .tv.ask{font-family:inherit;font-size:20px;color:var(--od)}\n#sspr .nt{font-size:11px;color:#8a7b6a;margin:6px 0 12px}\n#sspr .btns{display:flex;gap:8px}#sspr a.ln,#sspr a.tel{flex:1;display:block;text-align:center;background:#06C755;color:#fff;text-decoration:none;border-radius:10px;padding:11px;font-weight:700;font-size:14px}\n#sspr a.tel{background:var(--o)}#sspr a.ln:hover,#sspr a.tel:hover{opacity:.9}\n@media (max-width:649px){#sspr .ttl{font-size:22px}#sspr .sub{margin-bottom:16px}#sspr .menu{display:flex;flex-wrap:wrap;justify-content:center;padding:4px}#sspr .menu button{flex:0 0 33.333%}#sspr .menu button{padding:16px 2px;font-size:13px;gap:8px;white-space:nowrap}#sspr .menu button b{gap:3px}#sspr .menu button:nth-child(3n){border-right:none}#sspr .menu button:nth-child(-n+3){border-bottom:1px dashed var(--line)}#sspr .menu button svg{width:32px;height:32px}#sspr .two{flex-direction:column;gap:18px}#sspr .pk,#sspr .rs{flex:none;width:100%}#sspr .memo{height:300px}}\n";document.head.appendChild(st);
+function esc(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML}
+function parseCSV(t){var rows=[],row=[],f='',q=false;t=t.replace(/^﻿/,'');for(var i=0;i<t.length;i++){var c=t[i];if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}else if(c==='"')q=true;else if(c===','){row.push(f);f=''}else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;row.push(f);rows.push(row);row=[];f=''}else f+=c}if(f!==''||row.length){row.push(f);rows.push(row)}return rows}
+var IC={'iPhone':'<rect x="14" y="4" width="20" height="40" rx="4"/><line x1="21" y1="39" x2="27" y2="39"/>','iPad':'<rect x="8" y="6" width="32" height="38" rx="4"/><line x1="21" y1="39" x2="27" y2="39"/>','Apple Watch':'<rect x="13" y="13" width="22" height="22" rx="6"/><path d="M18 13l2-8h8l2 8M18 35l2 8h8l2-8"/>','Android':'<rect x="14" y="4" width="20" height="40" rx="3"/><line x1="14" y1="10" x2="34" y2="10"/><line x1="14" y1="37" x2="34" y2="37"/>','ゲーム機':'<rect x="9" y="16" width="30" height="16" rx="8"/><path d="M16 21v6M13 24h6"/><circle cx="30" cy="22.5" r="1.3"/><circle cx="33.5" cy="25.5" r="1.3"/>'};
+var D={},O={},S={c:'',m:'',r:[]},root=document.getElementById('sspr');
+function add(a){if(!D[a[0]]){D[a[0]]={};O[a[0]]=[]}if(!D[a[0]][a[1]]){D[a[0]][a[1]]=[];O[a[0]].push(a[1])}D[a[0]][a[1]].push([a[2],a[3]])}
+function yen(n){return n.toLocaleString('ja-JP')}
+function fmt(v){var n=parseInt(v,10);return n?yen(n)+'円'+(/〜$/.test(v)?'〜':''):'お問い合わせ'}
+function $(i){return document.getElementById(i)}
+function step1(){var h='<div class="scr"><p class="ttl">修理料金シミュレーター</p><p class="sub">機種の種類を選んでください</p><div class="menu">';
+Object.keys(O).forEach(function(k){h+='<button type="button" data-k="'+esc(k)+'"><svg viewBox="0 0 48 48">'+(IC[k]||IC.iPhone)+'</svg><b>'+esc(k)+'<span>›</span></b></button>'});
+root.innerHTML=h+'</div></div>';
+root.querySelectorAll('.menu button').forEach(function(b){b.onclick=function(){S.c=b.getAttribute('data-k');S.m=O[S.c].length===1?O[S.c][0]:'';S.r=[];step2()}})}
+function step2(){root.innerHTML='<div class="scr"><div class="top"><button type="button" class="back" id="bk">‹ 戻る</button><span class="cat">'+esc(S.c)+'</span></div><div class="two"><div class="pk"><p class="lb">機種</p><select id="m"></select><p class="lb">修理内容</p><div class="list" id="r"></div></div><div class="rs"><div class="memo"><div class="mh"><b>お見積り</b><span id="d"></span></div><div class="items" id="l"></div><div class="sum"><span class="sl">合計（税込）</span><span class="tv" id="t">―</span></div><p class="nt">＋出張費（宇治市内は無料）</p><div class="btns"><a class="ln" href="https://lin.ee/sUhSQys" target="_blank" rel="noopener">LINEで相談</a><a class="tel" href="tel:05017930004" target="_top">今すぐ電話</a></div></div></div></div></div>';
+$('bk').onclick=step1;
+var h='<option value="">選んでください</option>';O[S.c].slice().reverse().forEach(function(x){h+='<option'+(x===S.m?' selected':'')+'>'+esc(x)+'</option>'});$('m').innerHTML=h;
+$('m').onchange=function(){S.m=this.value;S.r=[];reps();res()};reps();res()}
+function reps(){var box=$('r');
+if(!S.m){box.innerHTML='<p class="wait">機種を選ぶと表示されます</p>';return}
+box.innerHTML='';D[S.c][S.m].forEach(function(x){var on=S.r.indexOf(x[0])>=0,l=document.createElement('label');l.className='row'+(on?' on':'');
+l.innerHTML='<input type="checkbox"'+(on?' checked':'')+'><span class="n">'+esc(x[0])+'</span><span class="p">'+fmt(x[1])+'</span>';
+l.querySelector('input').onchange=function(){var i=S.r.indexOf(x[0]);if(i>=0)S.r.splice(i,1);else S.r.push(x[0]);l.classList.toggle('on');res()};box.appendChild(l)})}
+function res(){var t=$('t'),l=$('l'),sum=0,ask=0,from=0,h='';$('d').textContent=S.m;
+if(!S.m||!S.r.length){l.innerHTML='<p class="wait">修理内容を選ぶと、ここに金額が入ります</p>';t.className='tv';t.textContent='―';return}
+D[S.c][S.m].forEach(function(x){if(S.r.indexOf(x[0])<0)return;h+='<div class="it"><span>'+esc(x[0])+'</span><i></i><em>'+fmt(x[1])+'</em></div>';var n=parseInt(x[1],10);if(!n)ask=1;else{sum+=n;if(/〜$/.test(x[1]))from=1}});
+l.innerHTML=h;
+if(ask){t.className='tv ask';t.textContent='お問い合わせ'}else{t.className='tv';t.innerHTML=yen(sum)+'<small>円'+(from?'〜':'')+'</small>'}}
+fetch(CSV_URL+(CSV_URL.indexOf('?')<0?'?':'&')+'v='+Date.now()).then(function(r){if(!r.ok)throw 0;return r.text()}).then(function(t){
+var rows=parseCSV(t);rows.shift();
+rows.forEach(function(r){if(r.length<4||!r[0]||!r[1]||!r[2])return;add([r[0].trim(),r[1].trim(),r[2].trim(),r[3].trim()])});
+var o2={};CATS.forEach(function(c){if(O[c])o2[c]=O[c]});Object.keys(O).forEach(function(c){if(!o2[c])o2[c]=O[c]});O=o2;
+step1()}).catch(function(){root.innerHTML='<p class="wait">料金データを読み込めませんでした。時間をおいて再度お試しください。</p>'});
 })();
