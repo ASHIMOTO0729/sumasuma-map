@@ -103,12 +103,18 @@ if(ask){t.className='tv ask';t.textContent='お問い合わせ'}else{t.className
 var bv=$('bv');bv.className=t.className.replace('tv','bv');bv.innerHTML=t.innerHTML;$('bar').hidden=false;root.classList.remove('empty');
 $('nt').textContent=(f?'':'＋出張費（STEP4で地域を選ぶと加算）。')+'表示金額は目安です。端末の状態により変わる場合があります。'}
 $('q').oninput=drawModels;
-var TOP=+(root.getAttribute('data-top')||96),SB=parseInt(root.getAttribute('data-offset')||'0',10)||0,side=root.querySelector('.side'),wrapEl=root.querySelector('.wrap'),bar=root.querySelector('.bar'),VT=0,VB=0;
-root.style.position='relative';var sn=document.createElement('div');sn.style.cssText='position:absolute;left:0;top:0;bottom:0;width:1px;pointer-events:none;visibility:hidden';root.appendChild(sn);
+var TOP=+(root.getAttribute('data-top')||96),SB=root.hasAttribute('data-offset')?(parseInt(root.getAttribute('data-offset'),10)||0):50,side=root.querySelector('.side'),wrapEl=root.querySelector('.wrap'),bar=root.querySelector('.bar'),VT=0,VB=0;
+root.style.position='relative';var sn=document.createElement('div');sn.style.cssText='position:absolute;left:0;top:0;width:1px;height:0;pointer-events:none;visibility:hidden';root.appendChild(sn);
 function place(){var mob=window.innerWidth<650,wt=wrapEl.offsetTop;
 if(!mob){var y=Math.max(0,Math.min(VT+TOP-wt,wrapEl.offsetHeight-side.offsetHeight));side.style.transform=y>0?'translateY('+Math.round(y)+'px)':''}else side.style.transform='';
 if(mob&&!bar.hidden){var bh=bar.offsetHeight,memo=root.querySelector('.memo'),mt=memo.getBoundingClientRect().top-root.getBoundingClientRect().top,by=Math.min(VB-bh-10-SB,root.offsetHeight-bh);var hide=VB-SB>mt+120||by<wt;bar.style.transform='translateY('+Math.round(by)+'px)';bar.style.opacity=hide?0:1;bar.style.pointerEvents=hide?'none':''}}
-if('IntersectionObserver' in window){var th=[];for(var k=0;k<=2000;k++)th.push(k/2000);new IntersectionObserver(function(es){var e=es[es.length-1],b=e.boundingClientRect,r=e.intersectionRect;if(!e.isIntersecting){VT=0;VB=0}else{VT=r.top-b.top;VB=r.bottom-b.top}place()},{threshold:th}).observe(sn)}
+var STRIP=40,vis={},io=null,built=0;
+function recalc(){var t=1e9,b=-1;for(var k in vis){if(vis[k][0]<t)t=vis[k][0];if(vis[k][1]>b)b=vis[k][1]}if(b<0){VT=0;VB=0}else{VT=t;VB=b}place()}
+function build(){var h=root.offsetHeight,n=Math.ceil(h/STRIP)+1;if(n===built)return;built=n;if(io)io.disconnect();sn.innerHTML='';vis={};
+var th=[];for(var k=0;k<=STRIP;k++)th.push(k/STRIP);
+io=new IntersectionObserver(function(es){es.forEach(function(e){var i=+e.target.getAttribute('data-i'),b=e.boundingClientRect,r=e.intersectionRect;if(e.isIntersecting&&r.height>0)vis[i]=[i*STRIP+(r.top-b.top),i*STRIP+(r.bottom-b.top)];else delete vis[i]});recalc()},{threshold:th});
+for(var k=0;k<n;k++){var d=document.createElement('div');d.setAttribute('data-i',k);d.style.cssText='position:absolute;left:0;width:1px;top:'+(k*STRIP)+'px;height:'+STRIP+'px';sn.appendChild(d);io.observe(d)}}
+if('IntersectionObserver' in window){build();setInterval(build,500)}
 window.addEventListener('resize',place);setInterval(place,400);
 
 $('bgo').onclick=function(){root.querySelector('.memo').scrollIntoView({behavior:'smooth',block:'center'})};
